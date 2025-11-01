@@ -10,6 +10,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using MenuFunctions_Panel.Models;
 using MenuFunctions_Panel.ViewModels;
+using MenuFunctions_Panel.Helpers;
 using Microsoft.Win32;
 
 namespace MenuFunctions_Panel
@@ -22,7 +23,7 @@ namespace MenuFunctions_Panel
         private MainViewModel _viewModel;
         private MenuItemConfig _copiedItem;
         private bool _isCutOperation;
-        private Point _dragStartPoint;
+        private TreeViewDragDropHelper _dragDropHelper;
         private List<string> _selectedTestFiles = new List<string>();
 
         public MainWindow()
@@ -32,193 +33,34 @@ namespace MenuFunctions_Panel
             _viewModel = new MainViewModel();
             this.DataContext = _viewModel;
 
+            // 初始化拖拽辅助类
+            _dragDropHelper = new TreeViewDragDropHelper(MenuTreeView, _viewModel);
+
             // 注册键盘快捷键
             this.KeyDown += MainWindow_KeyDown;
 
-            // 初始化文件浏览器
-            InitializeFileTree();
-
             // 尝试自动加载配置文件
             AutoLoadConfig();
+            
+            // 确保窗口显示在最前面
+            this.Loaded += (s, e) =>
+            {
+                this.Activate();
+                this.Focus();
+            };
         }
 
         #region 文件浏览器相关
 
-        private void InitializeFileTree()
+        private void FileBrowser_SelectionChanged(object sender, List<string> selectedPaths)
         {
-            // 加载桌面路径
-            LoadFileTree(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+            _selectedTestFiles = selectedPaths;
         }
 
-        private void LoadFileTree(string path)
-        {
-            try
-            {
-                FileTreeView.Items.Clear();
-                
-                var dirInfo = new DirectoryInfo(path);
-                var rootItem = CreateDirectoryNode(dirInfo);
-                if (rootItem != null)
-                {
-                    FileTreeView.Items.Add(rootItem);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"加载目录失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private TreeViewItem CreateDirectoryNode(DirectoryInfo dirInfo)
-        {
-            var item = new TreeViewItem
-            {
-                Header = $"📁 {dirInfo.Name}",
-                Tag = dirInfo.FullName
-            };
-
-            try
-            {
-                // 添加子目录
-                var dirs = dirInfo.GetDirectories().Take(50); // 限制数量避免卡顿
-                foreach (var dir in dirs)
-                {
-                    if (!dir.Attributes.HasFlag(FileAttributes.Hidden))
-                    {
-                        var subItem = new TreeViewItem
-                        {
-                            Header = $"📁 {dir.Name}",
-                            Tag = dir.FullName
-                        };
-                        subItem.Items.Add(null); // 占位符，用于显示展开按钮
-                        item.Items.Add(subItem);
-                    }
-                }
-
-                // 添加文件
-                var files = dirInfo.GetFiles().Take(50);
-                foreach (var file in files)
-                {
-                    if (!file.Attributes.HasFlag(FileAttributes.Hidden))
-                    {
-                        var fileItem = new TreeViewItem
-                        {
-                            Header = $"📄 {file.Name}",
-                            Tag = file.FullName
-                        };
-                        item.Items.Add(fileItem);
-                    }
-                }
-            }
-            catch { }
-
-            // 展开事件
-            item.Expanded += (s, e) =>
-            {
-                var tvi = s as TreeViewItem;
-                if (tvi.Items.Count == 1 && tvi.Items[0] == null)
-                {
-                    tvi.Items.Clear();
-                    var dir = new DirectoryInfo(tvi.Tag.ToString());
-                    try
-                    {
-                        foreach (var subDir in dir.GetDirectories().Take(50))
-                        {
-                            if (!subDir.Attributes.HasFlag(FileAttributes.Hidden))
-                            {
-                                var subItem = new TreeViewItem
-                                {
-                                    Header = $"📁 {subDir.Name}",
-                                    Tag = subDir.FullName
-                                };
-                                subItem.Items.Add(null);
-                                tvi.Items.Add(subItem);
-                            }
-                        }
-
-                        foreach (var file in dir.GetFiles().Take(50))
-                        {
-                            if (!file.Attributes.HasFlag(FileAttributes.Hidden))
-                            {
-                                var fileItem = new TreeViewItem
-                                {
-                                    Header = $"📄 {file.Name}",
-                                    Tag = file.FullName
-                                };
-                                tvi.Items.Add(fileItem);
-                            }
-                        }
-                    }
-                    catch { }
-                }
-            };
-
-            return item;
-        }
-
-        private void FileTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-        {
-            if (e.NewValue is TreeViewItem item && item.Tag != null)
-            {
-                var path = item.Tag.ToString();
-                if (File.Exists(path))
-                {
-                    _selectedTestFiles.Clear();
-                    _selectedTestFiles.Add(path);
-                }
-                else if (Directory.Exists(path))
-                {
-                    _selectedTestFiles.Clear();
-                    _selectedTestFiles.Add(path);
-                }
-            }
-        }
-
-        private void ClearSelection_Click(object sender, RoutedEventArgs e)
+        private void FileBrowser_FolderBackgroundSelected(object sender, string folderPath)
         {
             _selectedTestFiles.Clear();
-            MessageBox.Show("已取消选择", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void SelectFolderBackground_Click(object sender, RoutedEventArgs e)
-        {
-            _selectedTestFiles.Clear();
-            var dialog = new System.Windows.Forms.FolderBrowserDialog
-            {
-                Description = "选择文件夹"
-            };
-            
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                _selectedTestFiles.Add(dialog.SelectedPath);
-                LoadFileTree(dialog.SelectedPath);
-                MessageBox.Show($"已选择文件夹背景: {dialog.SelectedPath}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-
-        private void SelectDesktop_Click(object sender, RoutedEventArgs e)
-        {
-            _selectedTestFiles.Clear();
-            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            _selectedTestFiles.Add(desktop);
-            LoadFileTree(desktop);
-            MessageBox.Show($"已选择桌面: {desktop}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void RefreshFileTree_Click(object sender, RoutedEventArgs e)
-        {
-            if (FileTreeView.Items.Count > 0 && FileTreeView.Items[0] is TreeViewItem rootItem)
-            {
-                var rootPath = rootItem.Tag?.ToString();
-                if (!string.IsNullOrEmpty(rootPath))
-                {
-                    LoadFileTree(rootPath);
-                }
-            }
-            else
-            {
-                InitializeFileTree();
-            }
+            _selectedTestFiles.Add(folderPath);
         }
 
         #endregion
@@ -498,71 +340,8 @@ namespace MenuFunctions_Panel
         #endregion
 
         #region 拖拽功能
-
-        private void MenuTreeView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            _dragStartPoint = e.GetPosition(null);
-        }
-
-        private void MenuTreeView_PreviewMouseMove(object sender, MouseEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                var mousePos = e.GetPosition(null);
-                var diff = _dragStartPoint - mousePos;
-
-                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
-                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
-                {
-                    var treeView = sender as TreeView;
-                    var treeViewItem = FindAncestor<TreeViewItem>((DependencyObject)e.OriginalSource);
-
-                    if (treeViewItem != null && _viewModel.SelectedItem != null)
-                    {
-                        DragDrop.DoDragDrop(treeViewItem, _viewModel.SelectedItem, DragDropEffects.Move);
-                    }
-                }
-            }
-        }
-
-        private void MenuTreeView_DragOver(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(typeof(MenuItemConfig)))
-            {
-                e.Effects = DragDropEffects.Move;
-            }
-            else
-            {
-                e.Effects = DragDropEffects.None;
-            }
-            e.Handled = true;
-        }
-
-        private void MenuTreeView_Drop(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(typeof(MenuItemConfig)))
-            {
-                var draggedItem = e.Data.GetData(typeof(MenuItemConfig)) as MenuItemConfig;
-                var targetItem = FindAncestor<TreeViewItem>((DependencyObject)e.OriginalSource);
-                
-                // TODO: 实现拖拽后的重新排序逻辑
-                MessageBox.Show("拖拽排序功能开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-
-        private T FindAncestor<T>(DependencyObject current) where T : DependencyObject
-        {
-            do
-            {
-                if (current is T)
-                {
-                    return (T)current;
-                }
-                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
-            }
-            while (current != null);
-            return null;
-        }
+        
+        // 拖拽功能现在由 TreeViewDragDropHelper 类处理
 
         #endregion
 

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MenuFunctions_Panel"
+        xmlns:controls="clr-namespace:MenuFunctions_Panel.Controls"
         mc:Ignorable="d"
         Title="右键菜单配置编辑器" Height="750" Width="1450" WindowStartupLocation="CenterScreen"
         Background="#F5F5F5">
@@ -203,42 +204,9 @@
 
             <!-- 左侧：文件浏览器 -->
             <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Margin="0">
-                <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,8">
-                        <TextBlock Text="📁 测试文件浏览器" FontWeight="Bold" FontSize="13" Foreground="#333333"/>
-                    </Border>
-                    
-                    <!-- 文件浏览器按钮栏 -->
-                    <StackPanel DockPanel.Dock="Top" Background="#FAFAFA" Margin="5">
-                        <Button Style="{StaticResource ModernButton}" Click="ClearSelection_Click" Margin="2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="❌" FontSize="14" Margin="0,0,5,0"/>
-                                <TextBlock Text="取消选择" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource ModernButton}" Click="SelectFolderBackground_Click" Margin="2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="📂" FontSize="14" Margin="0,0,5,0"/>
-                                <TextBlock Text="选择文件夹背景" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource ModernButton}" Click="SelectDesktop_Click" Margin="2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🖥️" FontSize="14" Margin="0,0,5,0"/>
-                                <TextBlock Text="选择桌面" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource ModernButton}" Click="RefreshFileTree_Click" Margin="2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🔄" FontSize="14" Margin="0,0,5,0"/>
-                                <TextBlock Text="刷新" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                    
-                    <TreeView x:Name="FileTreeView" BorderThickness="0" Padding="5" 
-                              SelectedItemChanged="FileTreeView_SelectedItemChanged"/>
-                </DockPanel>
+                <controls:FileBrowserControl x:Name="FileBrowser" 
+                                             SelectionChanged="FileBrowser_SelectionChanged"
+                                             FolderBackgroundSelected="FileBrowser_FolderBackgroundSelected"/>
             </Border>
 
             <!-- 分隔条1 -->
@@ -257,11 +225,7 @@
                               SelectedItemChanged="MenuTreeView_SelectedItemChanged"
                               BorderThickness="0"
                               Padding="5"
-                              AllowDrop="True"
-                              PreviewMouseLeftButtonDown="MenuTreeView_PreviewMouseLeftButtonDown"
-                              PreviewMouseMove="MenuTreeView_PreviewMouseMove"
-                              Drop="MenuTreeView_Drop"
-                              DragOver="MenuTreeView_DragOver">
+                              AllowDrop="True">
                         <TreeView.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="复制 (Ctrl+C)" Click="CopyMenuItem_Click">
