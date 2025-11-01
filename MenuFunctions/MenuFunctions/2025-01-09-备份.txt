@@ -154,18 +154,7 @@ namespace MenuFunctions
             return menu;
         }
 
-        public string IsFileOrBackgroundFolder()
-        {
 
-            if (SelectedItemPaths.Count() == 0)
-            {
-                return "\"&folder\"";
-
-            }
-
-            return "\"&file\"";
-
-        }
 
 
 
@@ -420,67 +409,24 @@ namespace MenuFunctions
                                 {
 
 
+                                    if (config.DisplayCompletePathAndCommand)
+                                    {
+                                        MessageBox.Show(config.ProgramPath, "显示全部的路径和命令");
+                                    }
+
                                     //Process.Start(config.ProgramPath);
-
-                                    if (config.AddFileTypeParameter)   
-                                    {
-                                        //增加一个用于区分传递的内容是文件还是背景目录的参数
-
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath + " " + IsFileOrBackgroundFolder(), "显示全部的路径和命令");
-                                        }
-
-
-
-                                        ProcLauncher.Start(config.ProgramPath, IsFileOrBackgroundFolder());
-
-                                    }
-                                    else
-                                    {
-
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath, "显示全部的路径和命令");
-                                        }
-
-
-                                        ProcLauncher.Start(config.ProgramPath);
-
-                                    }
-                                   
+                                    ProcLauncher.Start(config.ProgramPath);
 
                                 }
                                 else
                                 {
 
-
-
-                                    if (config.AddFileTypeParameter)
+                                    if (config.DisplayCompletePathAndCommand)
                                     {
-                                        //增加一个用于区分传递的内容是文件还是背景目录的参数
-
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath+ " " + IsFileOrBackgroundFolder(), "显示全部的路径和命令");
-                                        }
-
-
-                                        BasicFunctions.ExecuteCommand(config.ProgramPath, IsFileOrBackgroundFolder(), config.HideCmdWindow, config.KeepCmdWindows);
-
+                                        MessageBox.Show(config.ProgramPath, "显示全部的路径和命令");
                                     }
-                                    else
-                                    {
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath, "显示全部的路径和命令");
-                                        }
 
-
-                                        BasicFunctions.ExecuteCommand(config.ProgramPath, "", config.HideCmdWindow, config.KeepCmdWindows);
-
-                                    }
-        
+                                    BasicFunctions.ExecuteCommand(config.ProgramPath, "", config.HideCmdWindow, config.KeepCmdWindows);
 
                                 }
 
@@ -491,68 +437,24 @@ namespace MenuFunctions
                                 if (!config.RunningProgramWithCMD)
                                 {
 
- 
-
-                                    if (config.AddFileTypeParameter)
+                                    if (config.DisplayCompletePathAndCommand)
                                     {
-                                        //增加一个用于区分传递的内容是文件还是背景目录的参数
-
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath + " " + args + " " + IsFileOrBackgroundFolder(), "显示全部的路径和命令");
-                                        }
-
-
-                                        ProcLauncher.Start(config.ProgramPath, $"{args} {IsFileOrBackgroundFolder()}");
-                                    }
-                                    else
-                                    {
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath + " " + args, "显示全部的路径和命令");
-                                        }
-
-
-
-                                        ProcLauncher.Start(config.ProgramPath, args);
-
+                                        MessageBox.Show(config.ProgramPath + " " + args, "显示全部的路径和命令");
                                     }
 
 
-                                    
+                                    ProcLauncher.Start(config.ProgramPath, args);
 
                                 }
                                 else
                                 {
 
-
-
-                                    if (config.AddFileTypeParameter)
+                                    if (config.DisplayCompletePathAndCommand)
                                     {
-                                        //增加一个用于区分传递的内容是文件还是背景目录的参数
-
-
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath + " " + args + " " + IsFileOrBackgroundFolder(), "显示全部的路径和命令");
-                                        }
-
-                                        BasicFunctions.ExecuteCommand(config.ProgramPath, $"{args} {IsFileOrBackgroundFolder()}", config.HideCmdWindow, config.KeepCmdWindows);
-
-                                    }
-                                    else
-                                    {
-                                        if (config.DisplayCompletePathAndCommand)
-                                        {
-                                            MessageBox.Show(config.ProgramPath + " " + args, "显示全部的路径和命令");
-                                        }
-
-                                        BasicFunctions.ExecuteCommand(config.ProgramPath, args, config.HideCmdWindow, config.KeepCmdWindows);
-
+                                        MessageBox.Show(config.ProgramPath + " " + args, "显示全部的路径和命令");
                                     }
 
-
-                                    
+                                    BasicFunctions.ExecuteCommand(config.ProgramPath, args, config.HideCmdWindow, config.KeepCmdWindows);
 
                                 }
 
@@ -681,17 +583,11 @@ namespace MenuFunctions
 
             public bool IsSeparator { get; set; } = false; // 标识是否为分割线
 
-            public bool DisplayCompletePathAndCommand { get; set; } = false; // 额外显示完整的路径和命令供检查          
-
+            public bool DisplayCompletePathAndCommand { get; set; } = false; // 额外显示完整的路径和命令供检查
 
             public bool UseQuotes { get; set; } = true; // 加引号
 
             public int Order { get; set; } // 添加排序字段
-
-            /// <summary>
-            /// 增加一个用于区分传递的内容是文件还是背景目录的参数。会在最后增加 "&file" 或者 "&folder" 来表示从哪里传递的参数.
-            /// </summary>
-            public bool AddFileTypeParameter { get; set; } = false; 
         }
 
 
@@ -915,7 +811,6 @@ namespace MenuFunctions
 
 
 
-
     }
 
 
@@ -1096,20 +991,6 @@ namespace MenuFunctions
             return input.Replace("'", "").Replace("\"", "");
         }
 
-
-        /// <summary>
-        /// 执行指定的命令行命令，并支持隐藏或保持 CMD 窗口打开。
-        /// </summary>
-        /// <param name="command">要执行的命令。</param>
-        /// <param name="argument">附加的命令参数，默认为空字符串。</param>
-        /// <param name="hideCmdWindow">是否隐藏 CMD 窗口，默认为 true。</param>
-        /// <param name="keepCmdWindow">是否保持 CMD 窗口打开，默认为 false。如果为 true，将忽略 hideCmdWindow。</param>
-        /// <remarks>
-        /// - 默认使用 "/C" 参数执行命令，即在命令执行后 CMD 窗口关闭。
-        /// - 如果 `keepCmdWindow` 为 true，则使用 "/K" 参数执行命令，保持 CMD 窗口打开。
-        /// - 如果 `hideCmdWindow` 为 true 且 `keepCmdWindow` 为 false，则隐藏 CMD 窗口。
-        /// - 使用 `ProcessStartInfo` 配置并启动 CMD 进程以执行命令。
-        /// </remarks>
         public static void ExecuteCommand(string command, string argument = "", bool hideCmdWindow = true, bool keepCmdWindow = false)
         {
             // 构建要执行的命令字符串
@@ -1175,23 +1056,6 @@ namespace MenuFunctions
             return directoryPath;
         }
 
-
-        /// <summary>
-        /// 尝试启动指定的可执行文件，并支持指定工作目录和额外搜索目录。
-        /// 如果指定的文件路径不存在，将在默认目录和额外目录中尝试查找并启动。
-        /// </summary>
-        /// <param name="exeName">要启动的可执行文件的名称或路径。</param>
-        /// <param name="args">启动可执行文件时传递的参数，默认为空字符串。</param>
-        /// <param name="workDir">工作目录。如果为空，将使用当前工作目录。</param>
-        /// <param name="additionalDirectories">额外搜索的目录列表，用于当文件路径未找到时尝试查找。</param>
-        /// <returns>
-        /// 如果进程启动成功，返回 true；如果启动失败或未找到可执行文件，返回 false。
-        /// </returns>
-        /// <remarks>
-        /// - 方法首先尝试直接启动指定的文件。
-        /// - 如果文件未找到（Win32Exception 错误代码 -2147467259），将尝试在默认目录和传入的额外目录中查找并启动文件。
-        /// - 如果文件仍然未找到，将弹出消息框显示尝试的路径并返回 false。
-        /// </remarks>
         public static bool Start(string exeName, string args = "", string workDir = "", List<string> additionalDirectories = null)
         {
             try
@@ -1232,6 +1096,7 @@ namespace MenuFunctions
                     MessageBox.Show($"无法找到或启动程序: {exeName}\n尝试的路径包括:\n{searchedDirs}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+
             return false; // 启动失败
         }
     }

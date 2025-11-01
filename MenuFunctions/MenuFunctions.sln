@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "按键测试", "按键测�
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "按键测试2", "按键测试2\按键测试2.csproj", "{0CCAD1A0-93F4-468F-A1E2-03E3C6C1BC08}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "测试输入控件", "测试输入控件\测试输入控件.csproj", "{91648DF0-52EF-499C-B21E-FC312BE51449}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "测试复选框", "测试复选框\测试复选框.csproj", "{436A0C07-A5A9-49A0-82EF-13FD9817CE6A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{0CCAD1A0-93F4-468F-A1E2-03E3C6C1BC08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CCAD1A0-93F4-468F-A1E2-03E3C6C1BC08}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CCAD1A0-93F4-468F-A1E2-03E3C6C1BC08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91648DF0-52EF-499C-B21E-FC312BE51449}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91648DF0-52EF-499C-B21E-FC312BE51449}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91648DF0-52EF-499C-B21E-FC312BE51449}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91648DF0-52EF-499C-B21E-FC312BE51449}.Release|Any CPU.Build.0 = Release|Any CPU
+		{436A0C07-A5A9-49A0-82EF-13FD9817CE6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{436A0C07-A5A9-49A0-82EF-13FD9817CE6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{436A0C07-A5A9-49A0-82EF-13FD9817CE6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{436A0C07-A5A9-49A0-82EF-13FD9817CE6A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
