@@ -5,206 +5,425 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MenuFunctions_Panel"
         mc:Ignorable="d"
-        Title="右键菜单配置编辑器" Height="700" Width="1100" WindowStartupLocation="CenterScreen">
+        Title="右键菜单配置编辑器" Height="750" Width="1450" WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5">
     <Window.Resources>
-        <!-- 布尔值到可见性转换器 -->
+        <!-- 转换器 -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-        
-        <!-- 反向布尔值到可见性转换器 -->
         <local:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-        
-        <!-- 非空判断转换器 -->
         <local:NotNullConverter x:Key="NotNullConverter"/>
         
+        <!-- 现代化按钮样式 -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Setter Property="BorderBrush" Value="#2196F3"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#BBDEFB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- TreeView 样式 -->
         <HierarchicalDataTemplate x:Key="TreeViewTemplate" ItemsSource="{Binding SubItems}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Text}" Margin="0,0,5,0"/>
-                <TextBlock Text="[分隔线]" Foreground="Gray" Visibility="{Binding IsSeparator, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                <TextBlock Text="[隐藏]" Foreground="Red" Visibility="{Binding IsVisible, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+            <StackPanel Orientation="Horizontal" Background="Transparent">
+                <TextBlock Text="📄 " FontSize="14" Visibility="{Binding IsSeparator, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                <TextBlock Text="➖ " FontSize="14" Visibility="{Binding IsSeparator, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="{Binding Text}" Margin="0,0,8,0" FontSize="13" VerticalAlignment="Center"/>
+                <TextBlock Text="[分隔线]" Foreground="#999999" FontSize="11" VerticalAlignment="Center"
+                           Visibility="{Binding IsSeparator, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="[隐藏]" Foreground="#F44336" FontSize="11" VerticalAlignment="Center" FontWeight="Bold"
+                           Visibility="{Binding IsVisible, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                <TextBlock Text="[根菜单]" Foreground="#4CAF50" FontSize="11" Margin="4,0,0,0" VerticalAlignment="Center"
+                           Visibility="{Binding ShowInRootMenu, Converter={StaticResource BoolToVisibilityConverter}}"/>
             </StackPanel>
         </HierarchicalDataTemplate>
+
+        <!-- TreeViewItem 样式 -->
+        <Style TargetType="TreeViewItem">
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="IsExpanded" Value="True"/>
+        </Style>
     </Window.Resources>
     
     <DockPanel>
         <!-- 顶部工具栏 -->
-        <ToolBarTray DockPanel.Dock="Top" Background="#F0F0F0">
-            <ToolBar>
-                <Button Click="LoadConfig_Click" ToolTip="打开配置文件">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📂" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="打开"/>
-                    </StackPanel>
-                </Button>
-                <Button Click="SaveConfig_Click" ToolTip="保存配置文件">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="💾" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="保存"/>
-                    </StackPanel>
-                </Button>
-                <Separator/>
-                <Button Click="AddMenuItem_Click" ToolTip="添加根菜单项">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="➕" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="新增"/>
-                    </StackPanel>
-                </Button>
-                <Button Click="AddSubMenuItem_Click" ToolTip="添加子菜单项">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📑" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="添加子项"/>
-                    </StackPanel>
-                </Button>
-                <Button Click="AddSeparator_Click" ToolTip="添加分隔线">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="➖" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="分隔线"/>
-                    </StackPanel>
-                </Button>
-                <Button Click="DeleteMenuItem_Click" ToolTip="删除选中项">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🗑️" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="删除"/>
-                    </StackPanel>
-                </Button>
-                <Separator/>
-                <Button Click="MoveUp_Click" ToolTip="上移">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="⬆️" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="上移"/>
-                    </StackPanel>
-                </Button>
-                <Button Click="MoveDown_Click" ToolTip="下移">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="⬇️" FontSize="16" Margin="0,0,5,0"/>
-                        <TextBlock Text="下移"/>
-                    </StackPanel>
-                </Button>
-            </ToolBar>
-        </ToolBarTray>
+        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="8">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource ModernButton}" Click="LoadConfig_Click" ToolTip="打开配置文件">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📂" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="打开" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="SaveConfig_Click" ToolTip="保存配置文件">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💾" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="保存" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="SaveAsConfig_Click" ToolTip="另存为">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📋" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="另存为" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Separator Width="2" Margin="5,0"/>
+                    
+                    <Button Style="{StaticResource ModernButton}" Click="AddMenuItem_Click" ToolTip="添加根菜单项">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="➕" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="新增菜单项" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="AddSubMenuItem_Click" ToolTip="添加子菜单项">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📑" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="添加子项" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="AddSeparator_Click" ToolTip="添加分隔线">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="➖" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="分隔线" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Separator Width="2" Margin="5,0"/>
+                    
+                    <Button Style="{StaticResource ModernButton}" Click="CopyMenuItem_Click" ToolTip="复制">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📄" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="复制" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="CutMenuItem_Click" ToolTip="剪切">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✂️" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="剪切" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="PasteMenuItem_Click" ToolTip="粘贴">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📋" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="粘贴" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="DeleteMenuItem_Click" ToolTip="删除选中项">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🗑️" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="删除" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Separator Width="2" Margin="5,0"/>
+                    
+                    <Button Style="{StaticResource ModernButton}" Click="MoveUp_Click" ToolTip="上移">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⬆️" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="上移" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="MoveDown_Click" ToolTip="下移">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⬇️" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="下移" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Separator Width="2" Margin="5,0"/>
+                    
+                    <Button Style="{StaticResource ModernButton}" Click="ToggleEnabled_Click" ToolTip="启用/停用">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="👁️" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="启用/停用" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="TestRun_Click" ToolTip="测试运行" Background="#E8F5E9">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="▶️" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="测试运行" VerticalAlignment="Center" Foreground="#2E7D32"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
 
         <!-- 底部状态栏 -->
-        <StatusBar DockPanel.Dock="Bottom" Background="#F0F0F0">
-            <StatusBarItem>
-                <TextBlock>
-                    <Run Text="配置文件: "/>
-                    <Run Text="{Binding ConfigFilePath, Mode=OneWay}" FontWeight="Bold"/>
+        <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="10,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                    <Run Text="📁 配置文件: " Foreground="#666666"/>
+                    <Run Text="{Binding ConfigFilePath, Mode=OneWay}" FontWeight="Bold" Foreground="#1976D2"/>
                 </TextBlock>
-            </StatusBarItem>
-        </StatusBar>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="#666666">
+                    <Run Text="菜单项: "/>
+                    <Run Text="{Binding MenuItems.Count, Mode=OneWay}" FontWeight="Bold"/>
+                </TextBlock>
+            </Grid>
+        </Border>
 
         <!-- 主内容区域 -->
-        <Grid>
+        <Grid Margin="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300" MinWidth="200"/>
+                <ColumnDefinition Width="280" MinWidth="200"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="350" MinWidth="250"/>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="*" MinWidth="400"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 左侧菜单树 -->
-            <GroupBox Grid.Column="0" Header="菜单结构" Margin="5">
-                <TreeView x:Name="MenuTreeView" 
-                          ItemsSource="{Binding MenuItems}"
-                          ItemTemplate="{StaticResource TreeViewTemplate}"
-                          SelectedItemChanged="MenuTreeView_SelectedItemChanged"/>
-            </GroupBox>
+            <!-- 左侧：文件浏览器 -->
+            <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Margin="0">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,8">
+                        <TextBlock Text="📁 测试文件浏览器" FontWeight="Bold" FontSize="13" Foreground="#333333"/>
+                    </Border>
+                    
+                    <!-- 文件浏览器按钮栏 -->
+                    <StackPanel DockPanel.Dock="Top" Background="#FAFAFA" Margin="5">
+                        <Button Style="{StaticResource ModernButton}" Click="ClearSelection_Click" Margin="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="❌" FontSize="14" Margin="0,0,5,0"/>
+                                <TextBlock Text="取消选择" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ModernButton}" Click="SelectFolderBackground_Click" Margin="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📂" FontSize="14" Margin="0,0,5,0"/>
+                                <TextBlock Text="选择文件夹背景" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ModernButton}" Click="SelectDesktop_Click" Margin="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🖥️" FontSize="14" Margin="0,0,5,0"/>
+                                <TextBlock Text="选择桌面" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ModernButton}" Click="RefreshFileTree_Click" Margin="2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔄" FontSize="14" Margin="0,0,5,0"/>
+                                <TextBlock Text="刷新" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    
+                    <TreeView x:Name="FileTreeView" BorderThickness="0" Padding="5" 
+                              SelectedItemChanged="FileTreeView_SelectedItemChanged"/>
+                </DockPanel>
+            </Border>
 
-            <!-- 分隔条 -->
+            <!-- 分隔条1 -->
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#E0E0E0"/>
 
-            <!-- 右侧配置面板 -->
-            <GroupBox Grid.Column="2" Header="详细配置" Margin="5">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullConverter}}">
-                        
-                        <!-- 基本信息 -->
-                        <Expander Header="📌 基本信息" IsExpanded="True" Margin="0,0,0,10">
-                            <StackPanel Margin="10">
-                                <Label Content="菜单文本:"/>
-                                <TextBox Text="{Binding SelectedItem.Text, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
-                                
-                                <CheckBox Content="是否为分隔线" IsChecked="{Binding SelectedItem.IsSeparator}" Margin="0,0,0,10"/>
-                                <CheckBox Content="是否可见" IsChecked="{Binding SelectedItem.IsVisible}" Margin="0,0,0,10"/>
-                                
-                                <Label Content="排序序号:"/>
-                                <TextBox Text="{Binding SelectedItem.Order, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
-                            </StackPanel>
-                        </Expander>
+            <!-- 中间：菜单结构树 -->
+            <Border Grid.Column="2" Background="#FFFFFF" Margin="0">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,8">
+                        <TextBlock Text="📋 菜单结构" FontWeight="Bold" FontSize="13" Foreground="#333333"/>
+                    </Border>
+                    
+                    <TreeView x:Name="MenuTreeView" 
+                              ItemsSource="{Binding MenuItems}"
+                              ItemTemplate="{StaticResource TreeViewTemplate}"
+                              SelectedItemChanged="MenuTreeView_SelectedItemChanged"
+                              BorderThickness="0"
+                              Padding="5"
+                              AllowDrop="True"
+                              PreviewMouseLeftButtonDown="MenuTreeView_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="MenuTreeView_PreviewMouseMove"
+                              Drop="MenuTreeView_Drop"
+                              DragOver="MenuTreeView_DragOver">
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="复制 (Ctrl+C)" Click="CopyMenuItem_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="📄" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="剪切 (Ctrl+X)" Click="CutMenuItem_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="✂️" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="粘贴 (Ctrl+V)" Click="PasteMenuItem_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="📋" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="在前面粘贴" Click="PasteBefore_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="⬆️" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="在后面粘贴" Click="PasteAfter_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="⬇️" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="启用/停用" Click="ToggleEnabled_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="👁️" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="测试运行" Click="TestRun_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="▶️" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="删除 (Del)" Click="DeleteMenuItem_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="🗑️" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+                    </TreeView>
+                </DockPanel>
+            </Border>
 
-                        <!-- 显示位置 -->
-                        <Expander Header="📍 显示位置" IsExpanded="True" Margin="0,0,0,10">
-                            <StackPanel Margin="10">
-                                <CheckBox Content="显示在根菜单" IsChecked="{Binding SelectedItem.ShowInRootMenu}" Margin="0,0,0,5"/>
-                                <CheckBox Content="显示在文件上" IsChecked="{Binding SelectedItem.ShowOnFiles}" Margin="0,0,0,5"/>
-                                <CheckBox Content="显示在文件夹上" IsChecked="{Binding SelectedItem.ShowOnFolder}" Margin="0,0,0,5"/>
-                                <CheckBox Content="显示在文件夹背景" IsChecked="{Binding SelectedItem.ShowOnFolderBackground}" Margin="0,0,0,5"/>
-                            </StackPanel>
-                        </Expander>
+            <!-- 分隔条2 -->
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" Background="#E0E0E0"/>
 
-                        <!-- 程序设置 -->
-                        <Expander Header="⚙️ 程序设置" IsExpanded="True" Margin="0,0,0,10">
-                            <StackPanel Margin="10">
-                                <Label Content="程序路径:"/>
-                                <DockPanel Margin="0,0,0,10">
-                                    <Button DockPanel.Dock="Right" Content="浏览..." Click="BrowseProgram_Click" Width="60" Margin="5,0,0,0"/>
-                                    <TextBox Text="{Binding SelectedItem.ProgramPath, UpdateSourceTrigger=PropertyChanged}"/>
-                                </DockPanel>
+            <!-- 右侧：配置面板 -->
+            <Border Grid.Column="4" Background="#FFFFFF" Margin="0">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,8">
+                        <TextBlock Text="⚙️ 详细配置" FontWeight="Bold" FontSize="13" Foreground="#333333"/>
+                    </Border>
+                    
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullConverter}}">
+                            
+                            <!-- 基本信息 -->
+                            <Expander Header="📌 基本信息" IsExpanded="True" Margin="0,0,0,10" Background="#FAFAFA">
+                                <StackPanel Margin="10" Background="White">
+                                    <Label Content="菜单文本:" FontWeight="Bold"/>
+                                    <TextBox Text="{Binding SelectedItem.Text, UpdateSourceTrigger=PropertyChanged}" 
+                                             Margin="0,0,0,10" Padding="8,6" BorderBrush="#CCCCCC"/>
+                                    
+                                    <CheckBox Content="是否为分隔线" IsChecked="{Binding SelectedItem.IsSeparator}" Margin="0,0,0,8"/>
+                                    <CheckBox Content="是否可见" IsChecked="{Binding SelectedItem.IsVisible}" Margin="0,0,0,8"/>
+                                    
+                                    <Label Content="排序序号:" FontWeight="Bold"/>
+                                    <TextBox Text="{Binding SelectedItem.Order, UpdateSourceTrigger=PropertyChanged}" 
+                                             Margin="0,0,0,10" Padding="8,6" BorderBrush="#CCCCCC"/>
+                                </StackPanel>
+                            </Expander>
 
-                                <Label Content="命令参数:"/>
-                                <TextBox Text="{Binding SelectedItem.Command, UpdateSourceTrigger=PropertyChanged}" 
-                                         Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10"/>
+                            <!-- 显示位置 -->
+                            <Expander Header="📍 显示位置" IsExpanded="True" Margin="0,0,0,10" Background="#FAFAFA">
+                                <StackPanel Margin="10" Background="White">
+                                    <CheckBox Content="显示在根菜单" IsChecked="{Binding SelectedItem.ShowInRootMenu}" Margin="0,0,0,6"/>
+                                    <CheckBox Content="显示在文件上" IsChecked="{Binding SelectedItem.ShowOnFiles}" Margin="0,0,0,6"/>
+                                    <CheckBox Content="显示在文件夹上" IsChecked="{Binding SelectedItem.ShowOnFolder}" Margin="0,0,0,6"/>
+                                    <CheckBox Content="显示在文件夹背景" IsChecked="{Binding SelectedItem.ShowOnFolderBackground}" Margin="0,0,0,6"/>
+                                </StackPanel>
+                            </Expander>
 
-                                <Label Content="图标路径:"/>
-                                <DockPanel Margin="0,0,0,10">
-                                    <Button DockPanel.Dock="Right" Content="浏览..." Click="BrowseIcon_Click" Width="60" Margin="5,0,0,0"/>
-                                    <TextBox Text="{Binding SelectedItem.IconPath, UpdateSourceTrigger=PropertyChanged}"/>
-                                </DockPanel>
-                            </StackPanel>
-                        </Expander>
+                            <!-- 程序设置 -->
+                            <Expander Header="⚙️ 程序设置" IsExpanded="True" Margin="0,0,0,10" Background="#FAFAFA">
+                                <StackPanel Margin="10" Background="White">
+                                    <Label Content="程序路径:" FontWeight="Bold"/>
+                                    <DockPanel Margin="0,0,0,10">
+                                        <Button DockPanel.Dock="Right" Content="浏览..." Click="BrowseProgram_Click" 
+                                                Width="70" Margin="5,0,0,0" Style="{StaticResource ModernButton}"/>
+                                        <TextBox Text="{Binding SelectedItem.ProgramPath, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Padding="8,6" BorderBrush="#CCCCCC"/>
+                                    </DockPanel>
 
-                        <!-- 文件类型过滤 -->
-                        <Expander Header="📄 文件类型过滤" IsExpanded="False" Margin="0,0,0,10">
-                            <StackPanel Margin="10">
-                                <Label Content="文件类型 (用逗号分隔，如: .txt, .doc):"/>
-                                <TextBox Text="{Binding FileTypesText, UpdateSourceTrigger=PropertyChanged}" 
-                                         Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10"/>
-                                <TextBlock Text="留空表示适用于所有文件类型" Foreground="Gray" FontSize="10"/>
-                            </StackPanel>
-                        </Expander>
+                                    <Label Content="命令参数:" FontWeight="Bold"/>
+                                    <TextBox Text="{Binding SelectedItem.Command, UpdateSourceTrigger=PropertyChanged}" 
+                                             Height="80" TextWrapping="Wrap" AcceptsReturn="True" 
+                                             VerticalScrollBarVisibility="Auto" Margin="0,0,0,10" 
+                                             Padding="8,6" BorderBrush="#CCCCCC"/>
 
-                        <!-- 高级选项 -->
-                        <Expander Header="🔧 高级选项" IsExpanded="False" Margin="0,0,0,10">
-                            <StackPanel Margin="10">
-                                <CheckBox Content="参数跟在每条路径后面" IsChecked="{Binding SelectedItem.AppendCommandToEachPath}" 
-                                          ToolTip="如果选中，命令参数会附加到每个文件路径后；否则所有路径放在最后" Margin="0,0,0,5"/>
-                                <CheckBox Content="路径使用引号" IsChecked="{Binding SelectedItem.UseQuotes}" 
-                                          ToolTip="为文件路径添加双引号" Margin="0,0,0,5"/>
-                                <CheckBox Content="只使用程序路径" IsChecked="{Binding SelectedItem.OnlyUsingProgram}" 
-                                          ToolTip="不传递文件路径参数，只运行程序" Margin="0,0,0,5"/>
-                                <CheckBox Content="添加文件类型参数" IsChecked="{Binding SelectedItem.AddFileTypeParameter}" 
-                                          ToolTip="在参数末尾添加 &amp;file 或 &amp;folder 标识" Margin="0,0,0,5"/>
-                                <CheckBox Content="显示完整路径和命令（调试用）" IsChecked="{Binding SelectedItem.DisplayCompletePathAndCommand}" 
-                                          ToolTip="执行前弹窗显示完整命令，用于调试" Margin="0,0,0,5"/>
-                            </StackPanel>
-                        </Expander>
+                                    <Label Content="图标路径:" FontWeight="Bold"/>
+                                    <DockPanel Margin="0,0,0,10">
+                                        <Button DockPanel.Dock="Right" Content="浏览..." Click="BrowseIcon_Click" 
+                                                Width="70" Margin="5,0,0,0" Style="{StaticResource ModernButton}"/>
+                                        <TextBox Text="{Binding SelectedItem.IconPath, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Padding="8,6" BorderBrush="#CCCCCC"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Expander>
 
-                        <!-- CMD 设置 -->
-                        <Expander Header="💻 CMD 设置" IsExpanded="False" Margin="0,0,0,10">
-                            <StackPanel Margin="10">
-                                <CheckBox Content="通过 CMD 运行程序" IsChecked="{Binding SelectedItem.RunningProgramWithCMD}" 
-                                          ToolTip="使用 cmd.exe 执行命令" Margin="0,0,0,5"/>
-                                <CheckBox Content="隐藏 CMD 窗口" IsChecked="{Binding SelectedItem.HideCmdWindow}" 
-                                          ToolTip="不显示命令行窗口" Margin="0,0,0,5"
-                                          IsEnabled="{Binding SelectedItem.RunningProgramWithCMD}"/>
-                                <CheckBox Content="保持 CMD 窗口打开" IsChecked="{Binding SelectedItem.KeepCmdWindows}" 
-                                          ToolTip="使用 /K 参数，命令执行后保持窗口" Margin="0,0,0,5"
-                                          IsEnabled="{Binding SelectedItem.RunningProgramWithCMD}"/>
-                            </StackPanel>
-                        </Expander>
+                            <!-- 文件类型过滤 -->
+                            <Expander Header="📄 文件类型过滤" IsExpanded="False" Margin="0,0,0,10" Background="#FAFAFA">
+                                <StackPanel Margin="10" Background="White">
+                                    <Label Content="文件类型 (用逗号分隔，如: .txt, .doc):" FontWeight="Bold"/>
+                                    <TextBox Text="{Binding FileTypesText, UpdateSourceTrigger=PropertyChanged}" 
+                                             Height="60" TextWrapping="Wrap" AcceptsReturn="True" 
+                                             VerticalScrollBarVisibility="Auto" Margin="0,0,0,10" 
+                                             Padding="8,6" BorderBrush="#CCCCCC"/>
+                                    <TextBlock Text="留空表示适用于所有文件类型" Foreground="#999999" FontSize="11"/>
+                                </StackPanel>
+                            </Expander>
 
-                    </StackPanel>
-                </ScrollViewer>
-            </GroupBox>
+                            <!-- 高级选项 -->
+                            <Expander Header="🔧 高级选项" IsExpanded="False" Margin="0,0,0,10" Background="#FAFAFA">
+                                <StackPanel Margin="10" Background="White">
+                                    <CheckBox Content="参数跟在每条路径后面" IsChecked="{Binding SelectedItem.AppendCommandToEachPath}" 
+                                              ToolTip="如果选中，命令参数会附加到每个文件路径后；否则所有路径放在最后" Margin="0,0,0,6"/>
+                                    <CheckBox Content="路径使用引号" IsChecked="{Binding SelectedItem.UseQuotes}" 
+                                              ToolTip="为文件路径添加双引号" Margin="0,0,0,6"/>
+                                    <CheckBox Content="只使用程序路径" IsChecked="{Binding SelectedItem.OnlyUsingProgram}" 
+                                              ToolTip="不传递文件路径参数，只运行程序" Margin="0,0,0,6"/>
+                                    <CheckBox Content="添加文件类型参数" IsChecked="{Binding SelectedItem.AddFileTypeParameter}" 
+                                              ToolTip="在参数末尾添加 &amp;file 或 &amp;folder 标识" Margin="0,0,0,6"/>
+                                    <CheckBox Content="显示完整路径和命令（调试用）" IsChecked="{Binding SelectedItem.DisplayCompletePathAndCommand}" 
+                                              ToolTip="执行前弹窗显示完整命令，用于调试" Margin="0,0,0,6"/>
+                                </StackPanel>
+                            </Expander>
+
+                            <!-- CMD 设置 -->
+                            <Expander Header="💻 CMD 设置" IsExpanded="False" Margin="0,0,0,10" Background="#FAFAFA">
+                                <StackPanel Margin="10" Background="White">
+                                    <CheckBox Content="通过 CMD 运行程序" IsChecked="{Binding SelectedItem.RunningProgramWithCMD}" 
+                                              ToolTip="使用 cmd.exe 执行命令" Margin="0,0,0,6"/>
+                                    <CheckBox Content="隐藏 CMD 窗口" IsChecked="{Binding SelectedItem.HideCmdWindow}" 
+                                              ToolTip="不显示命令行窗口" Margin="0,0,0,6"
+                                              IsEnabled="{Binding SelectedItem.RunningProgramWithCMD}"/>
+                                    <CheckBox Content="保持 CMD 窗口打开" IsChecked="{Binding SelectedItem.KeepCmdWindows}" 
+                                              ToolTip="使用 /K 参数，命令执行后保持窗口" Margin="0,0,0,6"
+                                              IsEnabled="{Binding SelectedItem.RunningProgramWithCMD}"/>
+                                </StackPanel>
+                            </Expander>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
     </Grid>
     </DockPanel>
 </Window>

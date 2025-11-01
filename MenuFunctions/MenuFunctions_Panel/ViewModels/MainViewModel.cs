@@ -266,7 +266,7 @@ namespace MenuFunctions_Panel.ViewModels
             }
         }
 
-        private ObservableCollection<MenuItemConfig> FindParentCollection(
+        public ObservableCollection<MenuItemConfig> FindParentCollection(
             ObservableCollection<MenuItemConfig> collection, MenuItemConfig item)
         {
             if (collection.Contains(item))
