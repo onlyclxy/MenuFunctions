@@ -30,6 +30,17 @@
             </DockPanel>
         </Border>
         
+        <!-- 当前选择显示框 -->
+        <Border DockPanel.Dock="Top" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="8,6">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="当前选择:" VerticalAlignment="Center" 
+                           Foreground="#666666" Margin="0,0,8,0" FontSize="12"/>
+                <TextBlock x:Name="SelectedPathDisplay" Text="无" VerticalAlignment="Center" 
+                           Foreground="#333333" FontSize="12" TextWrapping="Wrap" 
+                           ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+            </DockPanel>
+        </Border>
+        
         <!-- 快捷按钮栏 -->
         <StackPanel DockPanel.Dock="Top" Background="#FAFAFA" Margin="5">
             <Button Click="ClearSelection_Click" HorizontalAlignment="Stretch" Height="30" Margin="0,0,0,2">

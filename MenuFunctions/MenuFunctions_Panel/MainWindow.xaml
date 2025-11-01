@@ -70,10 +70,12 @@
     </Window.Resources>
     
     <DockPanel>
-        <!-- 顶部工具栏 -->
-        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="8">
+        <!-- 顶部工具栏 - 两行布局 -->
+        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="8,6">
             <StackPanel>
-                <StackPanel Orientation="Horizontal">
+                <!-- 第一行：文件操作、撤销/恢复、编辑操作 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <!-- 文件操作 -->
                     <Button Style="{StaticResource ModernButton}" Click="LoadConfig_Click" ToolTip="打开配置文件">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📂" FontSize="16" Margin="0,0,5,0"/>
@@ -95,6 +97,25 @@
                     
                     <Separator Width="2" Margin="5,0"/>
                     
+                    <!-- 撤销/恢复 -->
+                    <Button Style="{StaticResource ModernButton}" Click="Undo_Click" ToolTip="撤销 (Ctrl+Z)" 
+                            IsEnabled="{Binding CanUndo}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="↶" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="撤销" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="Redo_Click" ToolTip="恢复 (Ctrl+Y)" 
+                            IsEnabled="{Binding CanRedo}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="↷" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="恢复" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Separator Width="2" Margin="5,0"/>
+                    
+                    <!-- 编辑操作 -->
                     <Button Style="{StaticResource ModernButton}" Click="AddMenuItem_Click" ToolTip="添加根菜单项">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="➕" FontSize="16" Margin="0,0,5,0"/>
@@ -113,9 +134,11 @@
                             <TextBlock Text="分隔线" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    
-                    <Separator Width="2" Margin="5,0"/>
-                    
+                </StackPanel>
+                
+                <!-- 第二行：剪贴板、移动、状态、测试 -->
+                <StackPanel Orientation="Horizontal">
+                    <!-- 剪贴板操作 -->
                     <Button Style="{StaticResource ModernButton}" Click="CopyMenuItem_Click" ToolTip="复制">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📄" FontSize="16" Margin="0,0,5,0"/>
@@ -143,6 +166,7 @@
                     
                     <Separator Width="2" Margin="5,0"/>
                     
+                    <!-- 移动操作 -->
                     <Button Style="{StaticResource ModernButton}" Click="MoveUp_Click" ToolTip="上移">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="⬆️" FontSize="16" Margin="0,0,5,0"/>
@@ -158,6 +182,7 @@
                     
                     <Separator Width="2" Margin="5,0"/>
                     
+                    <!-- 状态操作 -->
                     <Button Style="{StaticResource ModernButton}" Click="ToggleEnabled_Click" ToolTip="启用/停用">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="👁️" FontSize="16" Margin="0,0,5,0"/>
@@ -167,6 +192,7 @@
                     
                     <Separator Width="2" Margin="5,0"/>
                     
+                    <!-- 测试运行 -->
                     <Button Style="{StaticResource ModernButton}" Click="TestRunWithPath_Click" ToolTip="使用选中路径测试运行" Background="#E8F5E9">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="▶️" FontSize="16" Margin="0,0,5,0"/>

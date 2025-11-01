@@ -267,6 +267,9 @@ namespace MenuFunctions_Panel.Helpers
 
         private void PerformDrop(MenuItemConfig draggedItem, MenuItemConfig targetItem, DropPosition position)
         {
+            // 保存状态以便撤销
+            _viewModel.SaveState();
+            
             // 从原位置移除
             var sourceCollection = _viewModel.FindParentCollection(_viewModel.MenuItems, draggedItem);
             if (sourceCollection == null) return;

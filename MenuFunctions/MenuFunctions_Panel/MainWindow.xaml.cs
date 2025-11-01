@@ -221,6 +221,7 @@ namespace MenuFunctions_Panel
         {
             if (_copiedItem != null)
             {
+                _viewModel.SaveState();
                 var itemToPaste = _isCutOperation ? _copiedItem : CloneMenuItem(_copiedItem);
                 
                 if (_viewModel.SelectedItem != null)
@@ -240,7 +241,12 @@ namespace MenuFunctions_Panel
 
                 if (_isCutOperation)
                 {
-                    _viewModel.DeleteMenuItem();
+                    // 剪切操作：删除原项（SaveState 已在上面调用）
+                    var collection = _viewModel.FindParentCollection(_viewModel.MenuItems, _copiedItem);
+                    if (collection != null)
+                    {
+                        collection.Remove(_copiedItem);
+                    }
                     _copiedItem = null;
                     _isCutOperation = false;
                 }
@@ -253,6 +259,7 @@ namespace MenuFunctions_Panel
         {
             if (_copiedItem != null && _viewModel.SelectedItem != null)
             {
+                _viewModel.SaveState();
                 var itemToPaste = _isCutOperation ? _copiedItem : CloneMenuItem(_copiedItem);
                 var collection = _viewModel.FindParentCollection(_viewModel.MenuItems, _viewModel.SelectedItem);
                 
@@ -275,6 +282,7 @@ namespace MenuFunctions_Panel
         {
             if (_copiedItem != null && _viewModel.SelectedItem != null)
             {
+                _viewModel.SaveState();
                 var itemToPaste = _isCutOperation ? _copiedItem : CloneMenuItem(_copiedItem);
                 var collection = _viewModel.FindParentCollection(_viewModel.MenuItems, _viewModel.SelectedItem);
                 
@@ -362,28 +370,39 @@ namespace MenuFunctions_Panel
                 return;
             }
 
-            if (_selectedTestFiles.Count == 0)
+            // 如果有选中的文件，使用文件；否则使用当前目录
+            string pathToUse = null;
+            if (_selectedTestFiles.Count > 0)
             {
-                MessageBox.Show("请在左侧文件浏览器中选择要测试的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                pathToUse = _selectedTestFiles[0];
+            }
+            else if (!string.IsNullOrEmpty(FileBrowser?.CurrentPath))
+            {
+                pathToUse = FileBrowser.CurrentPath;
+            }
+
+            if (string.IsNullOrEmpty(pathToUse))
+            {
+                MessageBox.Show("请在左侧文件浏览器中选择文件或导航到文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             try
             {
                 var config = _viewModel.SelectedItem;
-                var files = string.Join(" ", _selectedTestFiles.Select(f => $"\"{f}\""));
+                var pathArg = $"\"{pathToUse}\"";
                 
                 var message = $"即将执行:\n\n" +
                              $"程序: {config.ProgramPath}\n" +
                              $"参数: {config.Command}\n" +
-                             $"文件: {string.Join(", ", _selectedTestFiles)}\n\n" +
+                             $"路径: {pathToUse}\n\n" +
                              $"是否继续?";
 
                 if (MessageBox.Show(message, "测试运行确认", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
                     if (!string.IsNullOrEmpty(config.ProgramPath))
                     {
-                        var args = string.IsNullOrEmpty(config.Command) ? files : $"{config.Command} {files}";
+                        var args = string.IsNullOrEmpty(config.Command) ? pathArg : $"{config.Command} {pathArg}";
                         Process.Start(config.ProgramPath, args);
                         MessageBox.Show("命令已执行", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
@@ -479,12 +498,30 @@ namespace MenuFunctions_Panel
                         SaveConfig_Click(null, null);
                         e.Handled = true;
                         break;
+                    case Key.Z:
+                        Undo_Click(null, null);
+                        e.Handled = true;
+                        break;
+                    case Key.Y:
+                        Redo_Click(null, null);
+                        e.Handled = true;
+                        break;
                 }
             }
             else if (e.Key == Key.Delete)
             {
                 DeleteMenuItem_Click(null, null);
             }
+        }
+
+        private void Undo_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.Undo();
+        }
+
+        private void Redo_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.Redo();
         }
 
         #endregion

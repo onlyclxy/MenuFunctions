@@ -44,6 +44,7 @@ namespace MenuFunctions_Panel.Controls
             try
             {
                 LoadDrives();
+                UpdateSelectedPathDisplay(); // 初始化显示
             }
             catch (Exception ex)
             {
@@ -290,7 +291,18 @@ namespace MenuFunctions_Panel.Controls
                 {
                     _selectedPaths.Clear();
                     _selectedPaths.Add(path);
-                    _currentPath = Directory.Exists(path) ? path : Path.GetDirectoryName(path);
+                    
+                    // 更新当前路径
+                    if (Directory.Exists(path))
+                    {
+                        _currentPath = path;
+                    }
+                    else if (File.Exists(path))
+                    {
+                        _currentPath = Path.GetDirectoryName(path);
+                    }
+                    
+                    UpdateSelectedPathDisplay();
                     SelectionChanged?.Invoke(this, _selectedPaths);
                 }
             }
@@ -313,6 +325,40 @@ namespace MenuFunctions_Panel.Controls
         }
 
         /// <summary>
+        /// 更新选择路径显示
+        /// </summary>
+        private void UpdateSelectedPathDisplay()
+        {
+            if (SelectedPathDisplay != null)
+            {
+                if (_selectedPaths.Count > 0)
+                {
+                    var firstPath = _selectedPaths[0];
+                    if (File.Exists(firstPath))
+                    {
+                        SelectedPathDisplay.Text = $"📄 {Path.GetFileName(firstPath)}";
+                    }
+                    else if (Directory.Exists(firstPath))
+                    {
+                        SelectedPathDisplay.Text = $"📂 {Path.GetFileName(firstPath)}";
+                    }
+                    else
+                    {
+                        SelectedPathDisplay.Text = firstPath;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(_currentPath))
+                {
+                    SelectedPathDisplay.Text = $"📂 {Path.GetFileName(_currentPath)} (当前目录)";
+                }
+                else
+                {
+                    SelectedPathDisplay.Text = "无";
+                }
+            }
+        }
+
+        /// <summary>
         /// 导航到指定路径
         /// </summary>
         public void NavigateToPath(string path)
@@ -326,11 +372,16 @@ namespace MenuFunctions_Panel.Controls
                     
                     // 查找并展开路径
                     ExpandPath(path);
+                    
+                    // 如果导航到文件夹，不清空选择，但更新显示
+                    UpdateSelectedPathDisplay();
                 }
                 else if (File.Exists(path))
                 {
                     _selectedPaths.Clear();
                     _selectedPaths.Add(path);
+                    _currentPath = Path.GetDirectoryName(path);
+                    UpdateSelectedPathDisplay();
                     SelectionChanged?.Invoke(this, _selectedPaths);
                 }
             }
@@ -403,8 +454,14 @@ namespace MenuFunctions_Panel.Controls
                     {
                         _selectedPaths.Clear();
                         _selectedPaths.Add(selectedPath);
+                        UpdateSelectedPathDisplay();
                         SelectionChanged?.Invoke(this, _selectedPaths);
                     }
+                }
+                else
+                {
+                    // 如果没找到节点，至少更新显示
+                    UpdateSelectedPathDisplay();
                 }
             }
             catch (Exception ex)
@@ -522,8 +579,10 @@ namespace MenuFunctions_Panel.Controls
         private void ClearSelection_Click(object sender, RoutedEventArgs e)
         {
             EnsureTreeView();
+            // 只取消选中文件，但保留当前目录
             _selectedPaths.Clear();
             _treeView.SelectedNode = null;
+            UpdateSelectedPathDisplay();
             SelectionChanged?.Invoke(this, _selectedPaths);
         }
 

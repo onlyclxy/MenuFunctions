@@ -16,6 +16,11 @@ namespace MenuFunctions_Panel.ViewModels
         private MenuItemConfig _selectedItem;
         private string _configFilePath;
         private string _fileTypesText;
+        
+        // 撤销/恢复堆栈
+        private readonly System.Collections.Generic.Stack<string> _undoStack = new System.Collections.Generic.Stack<string>();
+        private readonly System.Collections.Generic.Stack<string> _redoStack = new System.Collections.Generic.Stack<string>();
+        private const int MaxHistorySize = 50;
 
         public ObservableCollection<MenuItemConfig> MenuItems
         {
@@ -50,6 +55,9 @@ namespace MenuFunctions_Panel.ViewModels
             get => _configFilePath;
             set { _configFilePath = value; OnPropertyChanged(); }
         }
+
+        public bool CanUndo => _undoStack.Count > 0;
+        public bool CanRedo => _redoStack.Count > 0;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -112,6 +120,9 @@ namespace MenuFunctions_Panel.ViewModels
                     ConvertSubItemsToObservable(items);
                     MenuItems = items;
                     ConfigFilePath = filePath;
+                    
+                    // 清空撤销/恢复历史记录
+                    ClearHistory();
                 }
             }
             catch (Exception ex)
@@ -154,6 +165,7 @@ namespace MenuFunctions_Panel.ViewModels
 
         public void AddMenuItem()
         {
+            SaveState();
             var newItem = new MenuItemConfig
             {
                 Text = "新建菜单项",
@@ -178,6 +190,7 @@ namespace MenuFunctions_Panel.ViewModels
                 return;
             }
 
+            SaveState();
             var newItem = new MenuItemConfig
             {
                 Text = "新建子菜单项",
@@ -211,6 +224,7 @@ namespace MenuFunctions_Panel.ViewModels
 
             if (result == MessageBoxResult.Yes)
             {
+                SaveState();
                 RemoveItemFromCollection(MenuItems, SelectedItem);
             }
         }
@@ -244,6 +258,7 @@ namespace MenuFunctions_Panel.ViewModels
                 var index = collection.IndexOf(SelectedItem);
                 if (index > 0)
                 {
+                    SaveState();
                     collection.Move(index, index - 1);
                     UpdateOrder(collection);
                 }
@@ -260,6 +275,7 @@ namespace MenuFunctions_Panel.ViewModels
                 var index = collection.IndexOf(SelectedItem);
                 if (index < collection.Count - 1)
                 {
+                    SaveState();
                     collection.Move(index, index + 1);
                     UpdateOrder(collection);
                 }
@@ -299,6 +315,7 @@ namespace MenuFunctions_Panel.ViewModels
 
         public void AddSeparator()
         {
+            SaveState();
             var separator = new MenuItemConfig
             {
                 Text = "分隔线",
@@ -309,6 +326,130 @@ namespace MenuFunctions_Panel.ViewModels
 
             MenuItems.Add(separator);
         }
+
+        #region 撤销/恢复功能
+
+        /// <summary>
+        /// 保存当前状态到撤销堆栈
+        /// </summary>
+        public void SaveState()
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(MenuItems, Formatting.None);
+                
+                // 限制历史记录大小
+                if (_undoStack.Count >= MaxHistorySize)
+                {
+                    var temp = new System.Collections.Generic.Stack<string>();
+                    while (_undoStack.Count > MaxHistorySize - 1)
+                    {
+                        _undoStack.Pop();
+                    }
+                    while (_undoStack.Count > 0)
+                    {
+                        temp.Push(_undoStack.Pop());
+                    }
+                    while (temp.Count > 0)
+                    {
+                        _undoStack.Push(temp.Pop());
+                    }
+                }
+                
+                _undoStack.Push(json);
+                _redoStack.Clear(); // 执行新操作时清除重做堆栈
+                
+                OnPropertyChanged(nameof(CanUndo));
+                OnPropertyChanged(nameof(CanRedo));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"保存状态失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 撤销操作
+        /// </summary>
+        public void Undo()
+        {
+            if (_undoStack.Count == 0) return;
+
+            try
+            {
+                // 保存当前状态到重做堆栈
+                var currentJson = JsonConvert.SerializeObject(MenuItems, Formatting.None);
+                _redoStack.Push(currentJson);
+
+                // 恢复上一个状态
+                var previousJson = _undoStack.Pop();
+                var items = JsonConvert.DeserializeObject<ObservableCollection<MenuItemConfig>>(previousJson);
+
+                if (items != null)
+                {
+                    ConvertSubItemsToObservable(items);
+                    MenuItems = items;
+                    
+                    // 清除选中项，避免引用已删除的对象
+                    SelectedItem = null;
+                }
+
+                OnPropertyChanged(nameof(CanUndo));
+                OnPropertyChanged(nameof(CanRedo));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"撤销失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 恢复操作
+        /// </summary>
+        public void Redo()
+        {
+            if (_redoStack.Count == 0) return;
+
+            try
+            {
+                // 保存当前状态到撤销堆栈
+                var currentJson = JsonConvert.SerializeObject(MenuItems, Formatting.None);
+                _undoStack.Push(currentJson);
+
+                // 恢复下一个状态
+                var nextJson = _redoStack.Pop();
+                var items = JsonConvert.DeserializeObject<ObservableCollection<MenuItemConfig>>(nextJson);
+
+                if (items != null)
+                {
+                    ConvertSubItemsToObservable(items);
+                    MenuItems = items;
+                    
+                    // 清除选中项
+                    SelectedItem = null;
+                }
+
+                OnPropertyChanged(nameof(CanUndo));
+                OnPropertyChanged(nameof(CanRedo));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"恢复失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 清空撤销/恢复历史记录
+        /// </summary>
+        public void ClearHistory()
+        {
+            _undoStack.Clear();
+            _redoStack.Clear();
+            OnPropertyChanged(nameof(CanUndo));
+            OnPropertyChanged(nameof(CanRedo));
+        }
+
+        #endregion
     }
 }
 
