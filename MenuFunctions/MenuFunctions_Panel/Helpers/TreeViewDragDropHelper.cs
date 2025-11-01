@@ -4,14 +4,13 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using MenuFunctions_Panel.Models;
 using MenuFunctions_Panel.ViewModels;
 
 namespace MenuFunctions_Panel.Helpers
 {
     /// <summary>
-    /// TreeView 拖拽辅助类
+    /// TreeView 拖拽辅助类 - 改进版，使用 Adorner 显示拖放指示线
     /// </summary>
     public class TreeViewDragDropHelper
     {
@@ -22,7 +21,7 @@ namespace MenuFunctions_Panel.Helpers
         private MenuItemConfig _draggedItem;
         
         // 拖拽指示器
-        private Line _dropIndicator;
+        private DropLineAdorner _dropAdorner;
         private TreeViewItem _targetItem;
         private DropPosition _dropPosition;
 
@@ -39,31 +38,28 @@ namespace MenuFunctions_Panel.Helpers
             _treeView = treeView;
             _viewModel = viewModel;
             
-            // 创建拖拽指示线
-            _dropIndicator = new Line
-            {
-                Stroke = new SolidColorBrush(Color.FromRgb(33, 150, 243)), // 蓝色
-                StrokeThickness = 2,
-                Visibility = Visibility.Collapsed
-            };
-
             // 注册事件
             _treeView.PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
             _treeView.PreviewMouseMove += OnPreviewMouseMove;
             _treeView.PreviewMouseLeftButtonUp += OnPreviewMouseLeftButtonUp;
             _treeView.DragOver += OnDragOver;
             _treeView.Drop += OnDrop;
+            _treeView.DragLeave += OnDragLeave;
         }
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _startPoint = e.GetPosition(null);
-            _draggedItem = _viewModel.SelectedItem;
+            var item = FindAncestor<TreeViewItem>((DependencyObject)e.OriginalSource);
+            if (item != null)
+            {
+                _draggedItem = item.DataContext as MenuItemConfig;
+            }
         }
 
         private void OnPreviewMouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed && !_isDragging)
+            if (e.LeftButton == MouseButtonState.Pressed && !_isDragging && _draggedItem != null)
             {
                 Point currentPosition = e.GetPosition(null);
                 Vector diff = _startPoint - currentPosition;
@@ -71,13 +67,11 @@ namespace MenuFunctions_Panel.Helpers
                 if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                     Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
                 {
-                    if (_draggedItem != null)
-                    {
-                        _isDragging = true;
-                        DragDrop.DoDragDrop(_treeView, _draggedItem, DragDropEffects.Move);
-                        _isDragging = false;
-                        HideDropIndicator();
-                    }
+                    _isDragging = true;
+                    DragDrop.DoDragDrop(_treeView, _draggedItem, DragDropEffects.Move);
+                    _isDragging = false;
+                    HideDropIndicator();
+                    _draggedItem = null;
                 }
             }
         }
@@ -86,6 +80,7 @@ namespace MenuFunctions_Panel.Helpers
         {
             _isDragging = false;
             HideDropIndicator();
+            _draggedItem = null;
         }
 
         private void OnDragOver(object sender, DragEventArgs e)
@@ -98,8 +93,14 @@ namespace MenuFunctions_Panel.Helpers
             else
             {
                 e.Effects = DragDropEffects.None;
+                HideDropIndicator();
             }
             e.Handled = true;
+        }
+
+        private void OnDragLeave(object sender, DragEventArgs e)
+        {
+            HideDropIndicator();
         }
 
         private void OnDrop(object sender, DragEventArgs e)
@@ -119,6 +120,7 @@ namespace MenuFunctions_Panel.Helpers
 
             _targetItem = null;
             _dropPosition = DropPosition.None;
+            _draggedItem = null;
         }
 
         private void UpdateDropIndicator(DragEventArgs e)
@@ -132,17 +134,30 @@ namespace MenuFunctions_Panel.Helpers
                 
                 if (item != null)
                 {
+                    var itemConfig = item.DataContext as MenuItemConfig;
+                    var draggedItem = e.Data.GetData(typeof(MenuItemConfig)) as MenuItemConfig;
+                    
+                    // 不能拖到自己或自己的子项
+                    if (draggedItem != null && IsDescendantOf(draggedItem, itemConfig))
+                    {
+                        HideDropIndicator();
+                        return;
+                    }
+
                     _targetItem = item;
                     var itemPosition = e.GetPosition(item);
                     var itemHeight = item.ActualHeight;
 
                     // 确定拖拽位置（上方、内部、下方）
-                    if (itemPosition.Y < itemHeight * 0.25)
+                    // 使用更细的阈值，让横线更容易出现
+                    double threshold = itemHeight * 0.3;
+                    
+                    if (itemPosition.Y < threshold)
                     {
                         _dropPosition = DropPosition.Before;
                         ShowDropIndicator(item, true); // 上方
                     }
-                    else if (itemPosition.Y > itemHeight * 0.75)
+                    else if (itemPosition.Y > itemHeight - threshold)
                     {
                         _dropPosition = DropPosition.After;
                         ShowDropIndicator(item, false); // 下方
@@ -150,99 +165,104 @@ namespace MenuFunctions_Panel.Helpers
                     else
                     {
                         _dropPosition = DropPosition.Inside;
-                        HighlightItem(item); // 高亮显示可以放入子项
+                        ShowDropIndicator(item, null); // 作为子项
                     }
                 }
+                else
+                {
+                    HideDropIndicator();
+                }
+            }
+            else
+            {
+                HideDropIndicator();
             }
         }
 
-        private void ShowDropIndicator(TreeViewItem item, bool showAbove)
+        private bool IsDescendantOf(MenuItemConfig ancestor, MenuItemConfig item)
+        {
+            if (item == null || ancestor == null) return false;
+            if (ancestor == item) return true;
+            
+            if (ancestor.SubItems != null)
+            {
+                foreach (var subItem in ancestor.SubItems)
+                {
+                    if (IsDescendantOf(subItem, item)) return true;
+                }
+            }
+            return false;
+        }
+
+        private void ShowDropIndicator(TreeViewItem item, bool? showAbove)
         {
             try
             {
                 // 移除旧的指示器
-                RemoveDropIndicator();
+                HideDropIndicator();
 
-                // 获取 TreeViewItem 的位置
-                var transform = item.TransformToAncestor(_treeView);
-                var itemPosition = transform.Transform(new Point(0, 0));
-
-                // 计算缩进（层级）
-                int indent = GetItemIndent(item);
-                double indentWidth = indent * 20; // 每层缩进 20 像素
-
-                // 创建新的指示线
-                _dropIndicator = new Line
-                {
-                    X1 = indentWidth,
-                    X2 = item.ActualWidth,
-                    Y1 = showAbove ? itemPosition.Y : itemPosition.Y + item.ActualHeight,
-                    Y2 = showAbove ? itemPosition.Y : itemPosition.Y + item.ActualHeight,
-                    Stroke = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
-                    StrokeThickness = 2,
-                    Visibility = Visibility.Visible
-                };
-
-                // 添加到 TreeView
+                // 获取 AdornerLayer
                 var adornerLayer = AdornerLayer.GetAdornerLayer(_treeView);
                 if (adornerLayer == null)
                 {
-                    // 如果没有 AdornerLayer，直接添加到 TreeView（作为备选方案）
-                    if (_treeView.Parent is Panel panel)
+                    // 如果 TreeView 没有 AdornerLayer，尝试从父容器获取
+                    var parent = VisualTreeHelper.GetParent(_treeView) as Visual;
+                    while (parent != null && adornerLayer == null)
                     {
-                        panel.Children.Add(_dropIndicator);
+                        adornerLayer = AdornerLayer.GetAdornerLayer(parent);
+                        parent = VisualTreeHelper.GetParent(parent) as Visual;
+                    }
+                }
+
+                if (adornerLayer != null)
+                {
+                    if (showAbove.HasValue)
+                    {
+                        // 显示横线（在项目上方或下方）
+                        _dropAdorner = new DropLineAdorner(_treeView, item, showAbove.Value);
+                        adornerLayer.Add(_dropAdorner);
+                    }
+                    else
+                    {
+                        // 显示高亮（作为子项）
+                        _dropAdorner = new DropLineAdorner(_treeView, item, null);
+                        adornerLayer.Add(_dropAdorner);
                     }
                 }
             }
-            catch { }
-        }
-
-        private void HighlightItem(TreeViewItem item)
-        {
-            // 高亮显示项目（可以添加到子项）
-            HideDropIndicator();
-            item.Background = new SolidColorBrush(Color.FromArgb(50, 33, 150, 243));
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"显示拖放指示器失败: {ex.Message}");
+            }
         }
 
         private void HideDropIndicator()
         {
-            RemoveDropIndicator();
+            if (_dropAdorner != null)
+            {
+                var adornerLayer = AdornerLayer.GetAdornerLayer(_treeView);
+                if (adornerLayer == null)
+                {
+                    var parent = VisualTreeHelper.GetParent(_treeView) as Visual;
+                    while (parent != null && adornerLayer == null)
+                    {
+                        adornerLayer = AdornerLayer.GetAdornerLayer(parent);
+                        parent = VisualTreeHelper.GetParent(parent) as Visual;
+                    }
+                }
+                
+                if (adornerLayer != null)
+                {
+                    adornerLayer.Remove(_dropAdorner);
+                }
+                _dropAdorner = null;
+            }
             
             // 移除所有高亮
             if (_targetItem != null)
             {
                 _targetItem.Background = Brushes.Transparent;
             }
-        }
-
-        private void RemoveDropIndicator()
-        {
-            if (_dropIndicator != null && _dropIndicator.Parent is Panel panel)
-            {
-                panel.Children.Remove(_dropIndicator);
-            }
-            
-            if (_dropIndicator != null)
-            {
-                _dropIndicator.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        private int GetItemIndent(TreeViewItem item)
-        {
-            int indent = 0;
-            DependencyObject parent = VisualTreeHelper.GetParent(item);
-            
-            while (parent != null && parent != _treeView)
-            {
-                if (parent is TreeViewItem)
-                {
-                    indent++;
-                }
-                parent = VisualTreeHelper.GetParent(parent);
-            }
-            
-            return indent;
         }
 
         private void PerformDrop(MenuItemConfig draggedItem, MenuItemConfig targetItem, DropPosition position)
@@ -319,5 +339,94 @@ namespace MenuFunctions_Panel.Helpers
             return null;
         }
     }
-}
 
+    /// <summary>
+    /// 拖放指示线 Adorner
+    /// </summary>
+    public class DropLineAdorner : Adorner
+    {
+        private TreeViewItem _targetItem;
+        private bool? _showAbove;
+        private Pen _linePen;
+        private Brush _highlightBrush;
+
+        public DropLineAdorner(UIElement adornedElement, TreeViewItem targetItem, bool? showAbove) 
+            : base(adornedElement)
+        {
+            _targetItem = targetItem;
+            _showAbove = showAbove;
+            
+            // 蓝色横线
+            _linePen = new Pen(new SolidColorBrush(Color.FromRgb(33, 150, 243)), 2);
+            _linePen.Freeze();
+            
+            // 高亮背景
+            _highlightBrush = new SolidColorBrush(Color.FromArgb(30, 33, 150, 243));
+            _highlightBrush.Freeze();
+            
+            IsHitTestVisible = false;
+        }
+
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            if (_targetItem == null) return;
+
+            try
+            {
+                // 获取目标项在 TreeView 中的位置
+                var transform = _targetItem.TransformToAncestor(AdornedElement);
+                var itemRect = new Rect(0, 0, _targetItem.ActualWidth, _targetItem.ActualHeight);
+                var transformedRect = transform.TransformBounds(itemRect);
+
+                if (_showAbove.HasValue)
+                {
+                    // 绘制横线
+                    double y = _showAbove.Value ? transformedRect.Top : transformedRect.Bottom;
+                    
+                    // 计算缩进（根据层级）
+                    int indent = GetItemIndent(_targetItem);
+                    double indentWidth = indent * 20; // 每层缩进 20 像素
+                    
+                    // 横线从左缩进位置到右边界
+                    double x1 = transformedRect.Left + indentWidth;
+                    double x2 = transformedRect.Right;
+                    
+                    drawingContext.DrawLine(_linePen, new Point(x1, y), new Point(x2, y));
+                }
+                else
+                {
+                    // 绘制高亮背景（作为子项）
+                    drawingContext.DrawRectangle(_highlightBrush, null, transformedRect);
+                    
+                    // 也绘制一个左侧的竖线表示缩进
+                    int indent = GetItemIndent(_targetItem);
+                    double indentWidth = indent * 20;
+                    double lineX = transformedRect.Left + indentWidth - 10;
+                    
+                    drawingContext.DrawLine(_linePen, 
+                        new Point(lineX, transformedRect.Top), 
+                        new Point(lineX, transformedRect.Bottom));
+                }
+            }
+            catch { }
+        }
+
+        private int GetItemIndent(TreeViewItem item)
+        {
+            int indent = 0;
+            DependencyObject parent = VisualTreeHelper.GetParent(item);
+            var treeView = AdornedElement as TreeView;
+            
+            while (parent != null && parent != treeView)
+            {
+                if (parent is TreeViewItem)
+                {
+                    indent++;
+                }
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            
+            return indent;
+        }
+    }
+}
