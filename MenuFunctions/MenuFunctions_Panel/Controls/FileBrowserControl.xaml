@@ -38,12 +38,6 @@
                     <TextBlock Text="取消选择" FontSize="12"/>
                 </StackPanel>
             </Button>
-            <Button Click="SelectFolderBackground_Click" HorizontalAlignment="Stretch" Height="30" Margin="0,0,0,2">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="📂" FontSize="14" Margin="0,0,5,0"/>
-                    <TextBlock Text="当前文件夹背景" FontSize="12"/>
-                </StackPanel>
-            </Button>
             <Separator Margin="0,4"/>
             <Button Click="SelectDesktop_Click" HorizontalAlignment="Stretch" Height="30" Margin="0,0,0,2">
                 <StackPanel Orientation="Horizontal">

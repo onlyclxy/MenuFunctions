@@ -164,10 +164,19 @@
                             <TextBlock Text="启用/停用" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource ModernButton}" Click="TestRun_Click" ToolTip="测试运行" Background="#E8F5E9">
+                    
+                    <Separator Width="2" Margin="5,0"/>
+                    
+                    <Button Style="{StaticResource ModernButton}" Click="TestRunWithPath_Click" ToolTip="使用选中路径测试运行" Background="#E8F5E9">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="▶️" FontSize="16" Margin="0,0,5,0"/>
                             <TextBlock Text="测试运行" VerticalAlignment="Center" Foreground="#2E7D32"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ModernButton}" Click="TestRunWithFolder_Click" ToolTip="使用文件夹背景测试运行" Background="#FFF3E0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📂" FontSize="16" Margin="0,0,5,0"/>
+                            <TextBlock Text="背景测试" VerticalAlignment="Center" Foreground="#E65100"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -205,8 +214,7 @@
             <!-- 左侧：文件浏览器 -->
             <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Margin="0">
                 <controls:FileBrowserControl x:Name="FileBrowser" 
-                                             SelectionChanged="FileBrowser_SelectionChanged"
-                                             FolderBackgroundSelected="FileBrowser_FolderBackgroundSelected"/>
+                                             SelectionChanged="FileBrowser_SelectionChanged"/>
             </Border>
 
             <!-- 分隔条1 -->
@@ -259,9 +267,14 @@
                                         <TextBlock Text="👁️" FontSize="14"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
-                                <MenuItem Header="测试运行" Click="TestRun_Click">
+                                <MenuItem Header="测试运行" Click="TestRunWithPath_Click">
                                     <MenuItem.Icon>
                                         <TextBlock Text="▶️" FontSize="14"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="背景测试" Click="TestRunWithFolder_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="📂" FontSize="14"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <Separator/>

@@ -17,7 +17,6 @@ namespace MenuFunctions_Panel.Controls
     public partial class FileBrowserControl : System.Windows.Controls.UserControl
     {
         public event EventHandler<List<string>> SelectionChanged;
-        public event EventHandler<string> FolderBackgroundSelected;
         
         private List<string> _selectedPaths = new List<string>();
         private string _currentPath;
@@ -349,14 +348,41 @@ namespace MenuFunctions_Panel.Controls
             EnsureTreeView();
             try
             {
-                var parts = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                    .Where(p => !string.IsNullOrEmpty(p))
-                    .ToList();
+                if (string.IsNullOrEmpty(path))
+                    return;
+
+                // 标准化路径
+                path = Path.GetFullPath(path);
+                
+                // 解析路径部分
+                var parts = new List<string>();
+                if (path.Length >= 2 && path[1] == ':')
+                {
+                    // 驱动器路径，如 C:\
+                    parts.Add(path.Substring(0, 2).ToUpper()); // C:
+                    if (path.Length > 2)
+                    {
+                        var remaining = path.Substring(2).TrimStart('\\');
+                        if (!string.IsNullOrEmpty(remaining))
+                        {
+                            parts.AddRange(remaining.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                                .Where(p => !string.IsNullOrEmpty(p)));
+                        }
+                    }
+                }
+                else
+                {
+                    parts = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .ToList();
+                }
 
                 TreeNode currentNode = null;
-                foreach (var node in _treeView.Nodes)
+                
+                // 从根节点开始查找
+                foreach (TreeNode rootNode in _treeView.Nodes)
                 {
-                    if (ExpandNodeRecursive(node as TreeNode, parts, 0, ref currentNode))
+                    if (ExpandNodeRecursive(rootNode, parts, path, 0, ref currentNode))
                     {
                         break;
                     }
@@ -366,12 +392,28 @@ namespace MenuFunctions_Panel.Controls
                 {
                     _treeView.SelectedNode = currentNode;
                     currentNode.EnsureVisible();
+                    
+                    // 更新选中状态
+                    var selectedPath = currentNode.Tag?.ToString();
+                    if (selectedPath != null && (selectedPath == "Computer" || selectedPath == "QuickAccess"))
+                    {
+                        // 如果是根节点，不清空选择
+                    }
+                    else if (selectedPath != null)
+                    {
+                        _selectedPaths.Clear();
+                        _selectedPaths.Add(selectedPath);
+                        SelectionChanged?.Invoke(this, _selectedPaths);
+                    }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"展开路径失败: {ex.Message}");
+            }
         }
 
-        private bool ExpandNodeRecursive(TreeNode node, List<string> parts, int index, ref TreeNode foundNode)
+        private bool ExpandNodeRecursive(TreeNode node, List<string> parts, string fullPath, int index, ref TreeNode foundNode)
         {
             if (node.Tag == null)
                 return false;
@@ -385,7 +427,7 @@ namespace MenuFunctions_Panel.Controls
                 
                 foreach (TreeNode child in node.Nodes)
                 {
-                    if (ExpandNodeRecursive(child, parts, index, ref foundNode))
+                    if (ExpandNodeRecursive(child, parts, fullPath, index, ref foundNode))
                         return true;
                 }
                 return false;
@@ -393,23 +435,37 @@ namespace MenuFunctions_Panel.Controls
 
             // 检查当前节点是否匹配路径的一部分
             string nodeName = Path.GetFileName(nodePath);
+            if (string.IsNullOrEmpty(nodeName))
+            {
+                // 驱动器节点，如 C:\
+                nodeName = nodePath.Length >= 2 ? nodePath.Substring(0, 2) : nodePath;
+            }
+            
             if (index < parts.Count && nodeName.Equals(parts[index], StringComparison.OrdinalIgnoreCase))
             {
+                // 匹配成功，展开节点
                 if (!node.IsExpanded)
                 {
                     LoadDirectory(node);
                     node.Expand();
                 }
 
+                // 检查是否到达目标路径
                 if (index == parts.Count - 1)
                 {
-                    foundNode = node;
-                    return true;
+                    // 验证完整路径是否匹配
+                    if (nodePath.Equals(fullPath, StringComparison.OrdinalIgnoreCase) || 
+                        Path.GetFullPath(nodePath).Equals(fullPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        foundNode = node;
+                        return true;
+                    }
                 }
 
+                // 继续查找子节点
                 foreach (TreeNode child in node.Nodes)
                 {
-                    if (ExpandNodeRecursive(child, parts, index + 1, ref foundNode))
+                    if (ExpandNodeRecursive(child, parts, fullPath, index + 1, ref foundNode))
                         return true;
                 }
             }
@@ -469,20 +525,6 @@ namespace MenuFunctions_Panel.Controls
             _selectedPaths.Clear();
             _treeView.SelectedNode = null;
             SelectionChanged?.Invoke(this, _selectedPaths);
-        }
-
-        private void SelectFolderBackground_Click(object sender, RoutedEventArgs e)
-        {
-            if (!string.IsNullOrEmpty(_currentPath) && Directory.Exists(_currentPath))
-            {
-                _selectedPaths.Clear();
-                _selectedPaths.Add(_currentPath);
-                FolderBackgroundSelected?.Invoke(this, _currentPath);
-            }
-            else
-            {
-                System.Windows.MessageBox.Show("请先导航到一个文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
         }
 
         private void SelectDesktop_Click(object sender, RoutedEventArgs e)

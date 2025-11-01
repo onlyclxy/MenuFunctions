@@ -57,12 +57,6 @@ namespace MenuFunctions_Panel
             _selectedTestFiles = selectedPaths;
         }
 
-        private void FileBrowser_FolderBackgroundSelected(object sender, string folderPath)
-        {
-            _selectedTestFiles.Clear();
-            _selectedTestFiles.Add(folderPath);
-        }
-
         #endregion
 
         #region 配置文件操作
@@ -357,7 +351,10 @@ namespace MenuFunctions_Panel
             }
         }
 
-        private void TestRun_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// 使用选中路径测试运行
+        /// </summary>
+        private void TestRunWithPath_Click(object sender, RoutedEventArgs e)
         {
             if (_viewModel.SelectedItem == null)
             {
@@ -387,6 +384,67 @@ namespace MenuFunctions_Panel
                     if (!string.IsNullOrEmpty(config.ProgramPath))
                     {
                         var args = string.IsNullOrEmpty(config.Command) ? files : $"{config.Command} {files}";
+                        Process.Start(config.ProgramPath, args);
+                        MessageBox.Show("命令已执行", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("未设置程序路径", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"执行失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 使用文件夹背景测试运行
+        /// </summary>
+        private void TestRunWithFolder_Click(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel.SelectedItem == null)
+            {
+                MessageBox.Show("请先选择要测试的菜单项", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 获取当前文件夹路径（如果没有选中文件，则使用当前路径；如果有选中文件，使用其所在文件夹）
+            string folderPath = null;
+            if (_selectedTestFiles.Count > 0)
+            {
+                var firstPath = _selectedTestFiles[0];
+                folderPath = System.IO.File.Exists(firstPath) 
+                    ? System.IO.Path.GetDirectoryName(firstPath) 
+                    : firstPath;
+            }
+            else if (!string.IsNullOrEmpty(FileBrowser?.CurrentPath))
+            {
+                folderPath = FileBrowser.CurrentPath;
+            }
+
+            if (string.IsNullOrEmpty(folderPath) || !System.IO.Directory.Exists(folderPath))
+            {
+                MessageBox.Show("请先导航到一个文件夹，或在文件浏览器中选择文件/文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                var config = _viewModel.SelectedItem;
+                
+                var message = $"即将执行（文件夹背景模式）:\n\n" +
+                             $"程序: {config.ProgramPath}\n" +
+                             $"参数: {config.Command}\n" +
+                             $"文件夹: {folderPath}\n\n" +
+                             $"是否继续?";
+
+                if (MessageBox.Show(message, "测试运行确认", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    if (!string.IsNullOrEmpty(config.ProgramPath))
+                    {
+                        var args = string.IsNullOrEmpty(config.Command) ? $"\"{folderPath}\"" : $"{config.Command} \"{folderPath}\"";
                         Process.Start(config.ProgramPath, args);
                         MessageBox.Show("命令已执行", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
